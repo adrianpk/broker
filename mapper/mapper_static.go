@@ -13,7 +13,7 @@ import (
 func (sm *StaticMapper) MapMessage(messageTypeID string, serialized interface{}) (broker.BaseMessage, error) {
 	var bm broker.BaseMessage
 
-	// There wil bm a case for each broker BaseMessage concrete implementation.
+	// There will be a case for each broker BaseMessage concrete implementation.
 	// TODO: Make types pluggable.
 	switch messageTypeID {
 	case "message":
