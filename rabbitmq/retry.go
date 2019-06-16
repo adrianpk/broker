@@ -40,12 +40,12 @@ func (r *RabbitMQ) RetryConnection(cfg *Config) chan *amqp.Connection {
 			nb := bo.NextBackOff()
 			if nb == backoff.Stop {
 				result <- nil
-				r.log.Info("Rabbit connection failed", "", "", "reason", "max number of tries reached")
+				r.log.Info("Rabbit connection failed", "reason", "max number of tries reached")
 				bo.Reset()
 				return
 			}
 
-			r.log.Info("Rabbit connection failed", "", "", "retrying-in", nb.String())
+			r.log.Info("Rabbit connection failed", "retrying-in", nb.String(), "unit", "seconds")
 			time.Sleep(nb)
 		}
 	}()
