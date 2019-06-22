@@ -2,7 +2,6 @@ package rabbitmq
 
 import (
 	"context"
-	"errors"
 
 	"github.com/streadway/amqp"
 	"gitlab.com/mikrowezel/backend/broker"
@@ -25,8 +24,46 @@ type RabbitMQ struct {
 	ready     bool
 	alive     bool
 	conn      *amqp.Connection
+	Exchanges map[string]*Exchange
+	Queues    map[string]*Queue
+	Bindings  map[string]*Binding
 	Listeners map[string]*Listener
 	Emitters  map[string]*Emitter
+}
+
+// Exchange lets the broker client
+// handle RabbitMQ exchanges.
+type Exchange struct {
+	Name       string
+	Kind       string
+	Durable    bool
+	AutoDelete bool
+	Internal   bool
+	NoWait     bool
+	ArgsTable  map[string]interface{}
+	log        *log.Logger
+}
+
+// Queue lets the broker client
+// handle RabbitMQ queues.
+type Queue struct {
+	Name       string
+	Kind       string
+	Durable    bool
+	AutoDelete bool
+	Internal   bool
+	NoWait     bool
+	ArgsTable  map[string]interface{}
+	log        *log.Logger
+}
+
+// Binding lets the broker client
+// handle bindings between exchanges and queues.
+type Binding struct {
+	ID       string
+	Name     string
+	Exchange *Exchange
+	Queue    *Queue
 }
 
 // Emitter is a RabbitMQ message emitter.
