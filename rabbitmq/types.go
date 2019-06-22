@@ -73,25 +73,34 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 	return r, nil
 }
 
-func (r *RabbitMQ) SetConfig(cfg *Config) {
-	r.cfg = cfg
-}
-
 // RabbitMQURL returns a RabbitMQ connection URL.
 func (c *Config) RabbitMQURL() string {
 	panic("TODO: Not implemented yet")
 }
 
-// ConStatus returns true if broker
-// connection is open.
-func (r *RabbitMQ) ConnStatus() bool {
-	return !r.conn.IsClosed
+// SetConfig for RabbitMQ client.
+func (r *RabbitMQ) SetConfig(cfg *Config) {
+	r.cfg = cfg
 }
 
-// ConStratus returns true if broker
+// Connect to RabbitMQ.
+func (r *RabbitMQ) Connect(retry bool) error {
+	if r.cfg == nil {
+		return errors.New("setup a configuration before connect")
+	}
+	if retry {
+		r.conn = <-r.RetryConnection(r.cfg)
+	}
+
+	var err error
+	r.conn, err = r.Connection()
+	return err
+}
+
+// ConnStatus returns true if broker
 // connection is open.
 func (r *RabbitMQ) ConnStatus() bool {
-	return !r.conn.IsClosed
+	return !r.conn.IsClosed()
 }
 
 // AddListener to the broker
