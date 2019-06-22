@@ -16,6 +16,8 @@ type Config struct {
 	BackoffMaxTries int
 }
 
+type ConnStatus string
+
 // RabbitMQ is message broker handler.
 type RabbitMQ struct {
 	ctx       context.Context
@@ -74,6 +76,18 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 // RabbitMQURL returns a RabbitMQ connection URL.
 func (c *Config) RabbitMQURL() string {
 	panic("TODO: Not implemented yet")
+}
+
+// ConStatus returns true if broker
+// connection is open.
+func (r *RabbitMQ) ConnStatus() bool {
+	return !r.conn.IsClosed
+}
+
+// ConStratus returns true if broker
+// connection is open.
+func (r *RabbitMQ) ConnStatus() bool {
+	return !r.conn.IsClosed
 }
 
 // AddListener to the broker
