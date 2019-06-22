@@ -2,7 +2,9 @@ package rabbitmq
 
 import (
 	"context"
+	"errors"
 
+	"gitlab.com/mikrowezel/backend/broker/mapper"
 	"gitlab.com/mikrowezel/backend/log"
 )
 
@@ -71,9 +73,9 @@ func (r *RabbitMQ) AddListener(name, exchange, queue string) error {
 	return nil
 }
 
-// AddEmitter to the brokergo i
+// AddEmitter to the broker.
 // queue parameter is optional but if it is provided
-// A queue and binding to the exchange will be created
+// a queue and binding to the exchange will be created
 // for each provided name.
 func (r *RabbitMQ) AddEmitter(name, exchange string, queue ...string) error {
 	if len(queue) < 1 {
