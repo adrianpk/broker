@@ -126,7 +126,6 @@ func (l *Logger) debugf(message string, fields []interface{}) {
 	if l.Level > Debug {
 		return
 	}
-
 	le := l.StdLog.Info()
 	appendKeyValues(le, l.dynafields, fields)
 	le.Msg(message)
@@ -136,7 +135,6 @@ func (l *Logger) infof(message string, fields []interface{}) {
 	if l.Level > Info {
 		return
 	}
-
 	le := l.StdLog.Info()
 	appendKeyValues(le, l.dynafields, fields)
 	le.Msg(message)
@@ -188,18 +186,19 @@ func appendKeyValues(le *zerolog.Event, dynafields []interface{}, fields []inter
 					i++
 				}
 			}
+		}
 
-			if len(cfg.stfields) > 1 {
-				for i := 0; i < len(cfg.stfields)-1; i++ {
-					if cfg.stfields[i] != nil && cfg.stfields[i+1] != nil {
-						k := stringify(cfg.stfields[i])
-						fs[k] = cfg.stfields[i+1]
-						// fmt.Printf("static - (%s, %v)\n", k, fs[k])
-						i++
-					}
+		if len(cfg.stfields) > 1 {
+			for i := 0; i < len(cfg.stfields)-1; i++ {
+				if cfg.stfields[i] != nil && cfg.stfields[i+1] != nil {
+					k := stringify(cfg.stfields[i])
+					fs[k] = cfg.stfields[i+1]
+					// fmt.Printf("static - (%s, %v)\n", k, fs[k])
+					i++
 				}
 			}
 		}
+
 	}
 	le.Fields(fs)
 }
