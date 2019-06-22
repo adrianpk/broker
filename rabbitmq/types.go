@@ -73,6 +73,10 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 	return r, nil
 }
 
+func (r *RabbitMQ) SetConfig(cfg *Config) {
+	r.cfg = cfg
+}
+
 // RabbitMQURL returns a RabbitMQ connection URL.
 func (c *Config) RabbitMQURL() string {
 	panic("TODO: Not implemented yet")
