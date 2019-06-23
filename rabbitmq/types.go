@@ -2,7 +2,9 @@ package rabbitmq
 
 import (
 	"context"
+	"sync"
 
+	"github.com/google/uuid"
 	"github.com/streadway/amqp"
 	"gitlab.com/mikrowezel/backend/broker"
 	"gitlab.com/mikrowezel/backend/broker/mapper"
@@ -24,6 +26,7 @@ type RabbitMQ struct {
 	ready     bool
 	alive     bool
 	conn      *amqp.Connection
+	Channels  []*Channel
 	Exchanges map[string]*Exchange
 	Queues    map[string]*Queue
 	Bindings  map[string]*Binding
@@ -31,9 +34,20 @@ type RabbitMQ struct {
 	Emitters  map[string]*Emitter
 }
 
+// Channel lets the broker client
+// handle RabbitMQ channels.
+type Channel struct {
+	mutex   *sync.Mutex
+	ID      uuid.UUID
+	Name    string
+	Channel *amqp.Channel
+	IsOpen  bool
+}
+
 // Exchange lets the broker client
 // handle RabbitMQ exchanges.
 type Exchange struct {
+	ID         uuid.UUID
 	Name       string
 	Kind       string
 	Durable    bool
@@ -47,14 +61,11 @@ type Exchange struct {
 // Queue lets the broker client
 // handle RabbitMQ queues.
 type Queue struct {
-	Name       string
-	Kind       string
-	Durable    bool
-	AutoDelete bool
-	Internal   bool
-	NoWait     bool
-	ArgsTable  map[string]interface{}
-	log        *log.Logger
+	ID        string
+	Name      string
+	Messages  int
+	Consumers int
+	log       *log.Logger
 }
 
 // Binding lets the broker client
