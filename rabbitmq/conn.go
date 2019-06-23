@@ -1,10 +1,11 @@
 package rabbitmq
 
 import (
-	"time"
-
+	"errors"
 	"github.com/cenkalti/backoff"
+	"github.com/google/uuid"
 	"github.com/streadway/amqp"
+	"time"
 )
 
 // Connection tries to establish a connection to RabbitMQ.
@@ -52,6 +53,41 @@ func (r *RabbitMQ) RetryConnection(cfg *Config) chan *amqp.Connection {
 
 			r.log.Info("Rabbit connection failed", "retrying-in", nb.String(), "unit", "seconds")
 			time.Sleep(nb)
+		}
+	}()
+
+	return result
+}
+
+// RetryChannel until get a healty one
+func (r *RabbitMQ) RetryChannel(timeoutMillis int) chan *Channel {
+	result := make(chan *Channel)
+
+	go func() {
+		defer close(result)
+
+		for {
+			ch, err := r.conn.Channel()
+
+			channel := Channel{
+				ID:      uuid.New(),
+				Name:    "",
+				Channel: ch,
+				IsOpen:  true,
+			}
+
+			select {
+			case result <- &channel:
+				r.log.Info("Rabbit channel obtained")
+				return
+
+			case <-time.After(time.Duration(timeoutMillis) * time.Millisecond):
+				err := errors.New("channel error")
+				r.log.Error(err, "reason", "timeout")
+				return
+			}
+
+			r.log.Error(err, "RabbitMQ channel error")
 		}
 	}()
 
