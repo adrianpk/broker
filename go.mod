@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/cenkalti/backoff v2.1.1+incompatible
+	github.com/google/uuid v1.1.1
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/streadway/amqp v0.0.0-20190404075320-75d898a42a94
 	gitlab.com/mikrowezel/backend/log v0.0.0
