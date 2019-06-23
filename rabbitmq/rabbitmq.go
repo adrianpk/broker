@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 
+	"github.com/google/uuid"
+	"github.com/streadway/amqp"
 	"gitlab.com/mikrowezel/backend/broker/mapper"
 	"gitlab.com/mikrowezel/backend/log"
 )
@@ -29,6 +31,7 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 	}
 
 	r.conn = <-r.RetryConnection(cfg)
+	r.Channels = append(r.Channels, <-r.RetryChannel(10))
 
 	return r, nil
 }
@@ -57,10 +60,45 @@ func (r *RabbitMQ) Connect(retry bool) error {
 	return err
 }
 
-// ConnStatus returns true if broker
+func (r *RabbitMQ) Channel() (*amqp.Channel, error) {
+	for _, ch := range r.Channels {
+		if ch.IsOpen {
+			return ch.Channel, nil
+		}
+	}
+	return nil, errors.New("cannot get a channel")
+}
+
+// IsConnected returns true if broker
 // connection is open.
-func (r *RabbitMQ) ConnStatus() bool {
+func (r *RabbitMQ) IsConnected() bool {
 	return !r.conn.IsClosed()
+}
+
+// AddExchange to the broker handler.
+func (r *RabbitMQ) AddExchange(name, kind string, durable, autodelete, internal, nowait bool) error {
+	if r.IsConnected() {
+		return errors.New("no active connection")
+	}
+
+	ch, err := r.Channel()
+	if err != nil {
+		return err
+	}
+
+	ch.ExchangeDeclare(name, kind, durable, autodelete, internal, nowait, nil)
+
+	r.Exchanges[name] = &Exchange{
+		ID:         uuid.New(),
+		Name:       name,
+		Kind:       kind,
+		Durable:    durable,
+		AutoDelete: autodelete,
+		Internal:   internal,
+		NoWait:     nowait,
+	}
+
+	return nil
 }
 
 // AddListener to the broker
