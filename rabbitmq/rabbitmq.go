@@ -44,7 +44,7 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 }
 
 // Update config
-func (cfg *Config) Update(c Config) {
+func (cfg *Config) Update(c Cfg) {
 	cfg.Cfg = c
 }
 
