@@ -2,16 +2,17 @@ package rabbitmq
 
 import (
 	"errors"
+	"time"
+
 	"github.com/cenkalti/backoff"
 	"github.com/google/uuid"
 	"github.com/streadway/amqp"
-	"time"
 )
 
 // Connection tries to establish a connection to RabbitMQ.
 // error if fails.
 func (r *RabbitMQ) Connection() (*amqp.Connection, error) {
-	url := r.cfg.RabbitMQURL()
+	url := r.cfg.URL()
 	r.log.Info("Dialing to RabbitMQ broker", "host", url)
 	return amqp.Dial(url)
 }
@@ -19,17 +20,17 @@ func (r *RabbitMQ) Connection() (*amqp.Connection, error) {
 // RetryConnection implements a backoff mechanism for establishing a connection
 // to RabbitMQ; this is especially useful in containerize environments where
 // components can be started out of order.
-func (r *RabbitMQ) RetryConnection(cfg *Config) chan *amqp.Connection {
+func (r *RabbitMQ) RetryConnection() chan *amqp.Connection {
 	result := make(chan *amqp.Connection)
 
-	bo := backoff.WithMaxRetries(backoff.NewExponentialBackOff(), uint64(cfg.BackoffMaxTries))
+	bo := backoff.WithMaxRetries(backoff.NewExponentialBackOff(), uint64(r.cfg.BackoffMaxTries()))
 
 	go func() {
 		defer close(result)
 
-		url := cfg.RabbitMQURL()
+		url := r.cfg.URL()
 
-		for i := 0; i <= cfg.BackoffMaxTries; i++ {
+		for i := 0; i <= int(r.cfg.BackoffMaxTries()); i++ {
 
 			r.log.Info("Dialing to RabbitMQ broker", "host", url)
 
@@ -60,8 +61,9 @@ func (r *RabbitMQ) RetryConnection(cfg *Config) chan *amqp.Connection {
 }
 
 // RetryChannel until get a healty one
-func (r *RabbitMQ) RetryChannel(timeoutMillis int) chan *Channel {
+func (r *RabbitMQ) RetryChannel(timeoutMillis int) (chan *Channel, chan error) {
 	result := make(chan *Channel)
+	errs := make(chan error)
 
 	go func() {
 		defer close(result)
@@ -78,18 +80,18 @@ func (r *RabbitMQ) RetryChannel(timeoutMillis int) chan *Channel {
 
 			select {
 			case result <- &channel:
-				r.log.Info("Rabbit channel obtained")
+				return
+
+			case errs <- err:
 				return
 
 			case <-time.After(time.Duration(timeoutMillis) * time.Millisecond):
-				err := errors.New("channel error")
-				r.log.Error(err, "reason", "timeout")
+				err := errors.New("channel creation timeout")
+				errs <- err
 				return
 			}
-
-			r.log.Error(err, "RabbitMQ channel error")
 		}
 	}()
 
-	return result
+	return result, errs
 }
