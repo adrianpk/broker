@@ -3,6 +3,7 @@ package rabbitmq
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/streadway/amqp"
@@ -22,7 +23,7 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 		// Generic
 		ctx:       ctx,
 		cfg:       cfg,
-		name:      cfg.Name,
+		name:      cfg.Name(),
 		ready:     false,
 		alive:     false,
 		log:       log,
@@ -30,15 +31,21 @@ func newRabbitMQ(ctx context.Context, cfg *Config, log *log.Logger) (*RabbitMQ, 
 		Emitters:  make(map[string]*Emitter),
 	}
 
-	r.conn = <-r.RetryConnection(cfg)
-	r.Channels = append(r.Channels, <-r.RetryChannel(10))
+	r.conn = <-r.RetryConnection()
+	chs, errs := r.RetryChannel(10)
+	select {
+	case ch := <-chs:
+		r.Channels[ch] = ch.IsOpen
 
+	case err := <-errs:
+		r.log.Error(err)
+	}
 	return r, nil
 }
 
-// RabbitMQURL returns a RabbitMQ connection URL.
-func (c *Config) RabbitMQURL() string {
-	panic("TODO: Not implemented yet")
+// Update config
+func (cfg *Config) Update(c Config) {
+	cfg.Cfg = c
 }
 
 // SetConfig for RabbitMQ client.
@@ -46,13 +53,32 @@ func (r *RabbitMQ) SetConfig(cfg *Config) {
 	r.cfg = cfg
 }
 
+// Name returns the assigned name for this handler.
+func (cfg *Config) Name() string {
+	return cfg.ValAsString("rabbitmq.handler.name", "rabbitmq-handler")
+}
+
+// URL build a connection URL to Rabbit using current host and port.
+func (cfg *Config) URL() string {
+	user := cfg.ValAsString("rabbitmq.user", "")
+	pass := cfg.ValAsString("rabbitmq.pass", "")
+	host := cfg.ValAsString("rabbitmq.host", "localhost")
+	port := cfg.ValAsInt("rabbitmq.port", 5672)
+	return fmt.Sprintf("amqp://%s:%s@%s:%s", user, pass, host, port)
+}
+
+// BackoffMaxTries returns the max ammount of connection retries.
+func (cfg *Config) BackoffMaxTries() int64 {
+	return cfg.ValAsInt("rabbitmq.backoff.maxtries", 10)
+}
+
 // Connect to RabbitMQ.
 func (r *RabbitMQ) Connect(retry bool) error {
 	if r.cfg == nil {
-		return errors.New("setup a configuration before connect")
+		return errors.New("no available configuration")
 	}
 	if retry {
-		r.conn = <-r.RetryConnection(r.cfg)
+		r.conn = <-r.RetryConnection()
 	}
 
 	var err error
@@ -60,9 +86,10 @@ func (r *RabbitMQ) Connect(retry bool) error {
 	return err
 }
 
+// Channel returns an *amqp.Channel
 func (r *RabbitMQ) Channel() (*amqp.Channel, error) {
-	for _, ch := range r.Channels {
-		if ch.IsOpen {
+	for ch, valid := range r.Channels {
+		if valid {
 			return ch.Channel, nil
 		}
 	}

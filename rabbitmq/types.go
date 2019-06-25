@@ -11,10 +11,19 @@ import (
 	"gitlab.com/mikrowezel/backend/log"
 )
 
-// Config for broker.
+// Cfg interface
+type Cfg interface {
+	Get() map[string]string
+	Val() (val string, ok bool)
+	ValAsString(key, defVal string, reload ...bool) (val string)
+	ValAsInt(key string, defVal int64, reload ...bool) (val int64)
+	ValAsFloat(key string, defVal float64, reload ...bool) (val float64)
+	ValAsBool(key string, defVal bool, reload ...bool) (val bool)
+}
+
+// Config for this package.
 type Config struct {
-	Name            string
-	BackoffMaxTries int
+	Cfg
 }
 
 // RabbitMQ is message broker handler.
@@ -26,7 +35,7 @@ type RabbitMQ struct {
 	ready     bool
 	alive     bool
 	conn      *amqp.Connection
-	Channels  []*Channel
+	Channels  map[*Channel]bool
 	Exchanges map[string]*Exchange
 	Queues    map[string]*Queue
 	Bindings  map[string]*Binding
