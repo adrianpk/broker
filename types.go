@@ -15,11 +15,11 @@ type Text struct {
 }
 
 // TypeID returns Message type id.
-func (m *Message) TypeID() string{
+func (m *Message) TypeID() string {
 	return "message"
 }
 
 // TypeID returns Text type id.
-func (t *Text) TypeID() string{
+func (t *Text) TypeID() string {
 	return "text"
 }
